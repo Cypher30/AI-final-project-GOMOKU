@@ -1,4 +1,3 @@
-import random
 from pisqpipe import DEBUG_EVAL, DEBUG
 from util import *
 
@@ -6,7 +5,7 @@ pp.infotext = 'name="pbrain-pyrandom", author="Jan Stransky", version="1.0", cou
 
 MAX_BOARD = 100
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
-begin = 1
+ISEMPTY = 1
 
 def brain_init():
 	if pp.width < 5 or pp.height < 5:
@@ -21,6 +20,8 @@ def brain_restart():
 	for x in range(pp.width):
 		for y in range(pp.height):
 			board[x][y] = 0
+	global ISEMPTY
+	ISEMPTY = 1
 	pp.pipeOut("OK")
 
 def isFree(x, y):
@@ -50,120 +51,27 @@ def brain_takeback(x, y):
 		return 0
 	return 2
 
-def Isterminate(board):#判断场上是否胜负已分
-	height, width = pp.height, pp.width
-	for row in board:
-		work_str = "".join(map(str, row))
-		if "11111" in work_str:
-			return True
-
-	for idx in range(width):
-		col = [b[idx] for b in board]
-		work_str = "".join(map(str, col))
-		if "11111" in work_str:
-			return True
-
-	for dist in range(-width + 1, height):
-		row, col = (0, -dist) if dist < 0 else (dist, 0)
-		diag = [board[i][j] for i in range(row, height) for j in range(col, width) if i - j == dist]
-		work_str = "".join(map(str, diag))
-		if "11111" in work_str:
-			return True
-
-	for dist in range(0, width + height - 1):
-		row, col = (dist, 0) if dist < height else (height - 1, dist - height + 1)
-		diag = [board[i][j] for i in range(row, -1, -1) for j in range(col, width) if i + j == dist]
-		work_str = "".join(map(str, diag))
-		if "11111" in work_str:
-			return True
-
-	return False
-
-def abpSearch(board,alpha,beta,depth,maxdep):
-	action = [-1,-1]
-	if depth%2 == maxdep%2:##max节点，我方行动
-		# if Isterminate(board):
-		# 	return float("+inf"), [-1, -1]
-		dotspace = evaluation(board)
-		if depth == 0:
-			return dotspace[0].value, dotspace[0].action
-		if dotspace[0].value == float("+inf"):
-			return dotspace[0].value, dotspace[0].action
-		for i in range(len(dotspace)):#对每个子空间落子
-			x = dotspace[i].action[0]
-			y = dotspace[i].action[1]
-			board[x][y] = 1
-			move_v, move_action = abpSearch(board,alpha,beta,depth-1,maxdep)
-			board[x][y] = 0
-			if move_v > alpha:
-				action = [x, y]
-				alpha = move_v
-			if alpha >= beta:
-				return alpha, action
-		return alpha, action
-	else: #min节点,敌方行动
-		boardcopy = [[board[x][y] for y in range(pp.width)] for x in range(pp.height)]
-		for x in range(pp.width):#翻转棋盘，黑白子对换，才能用evaluation函数找白方较优势的落子点
-			for y in range(pp.height):
-				boardcopy[x][y] = (3 - boardcopy[x][y]) % 3
-		# if Isterminate(board):
-		# 	return float("-inf"), [-1, -1]
-		dotspace = evaluation(boardcopy)
-		if depth == 0:
-			return -dotspace[0].value, dotspace[0].action
-		if dotspace[0].value == float("+inf"):
-			return -dotspace[0].value, dotspace[0].action
-		for i in range(len(dotspace)):#对每个子空间落子
-			x = dotspace[i].action[0]
-			y = dotspace[i].action[1]
-			board[x][y] = 2
-			move_v, move_action = abpSearch(board,alpha,beta,depth-1,maxdep)
-			board[x][y] = 0
-			if move_v < beta:
-				action = [x, y]
-				beta = move_v
-			if alpha >= beta:
-				return beta, action
-		return beta, action
-
 
 def brain_turn():
 	if pp.terminateAI:
 		return
 	i = 0
-	global begin
-	if begin == 1:
-		for k in range(pp.width):
-			for j in range(pp.height):
-				if not isFree(k,j):
-					begin = 0
-					break
-			if begin == 0:
-				break
-
 	while True:
-		if begin == 1:#此时场上没有棋子，下天元
-			x = pp.width//2
-			y = pp.height//2
-			begin = 0
-		else:
-			max_depth = 1
-			getboard = [[board[x][y] for y in range(pp.height)] for x in range(pp.width)]
-			_, move = abpSearch(getboard,float("-Inf"),float("Inf"),max_depth,max_depth)
-			flag = 0
-			if move == [-1, -1]:
-				for i in range(pp.height):
-					for j in range(pp.width):
-						if board[i][j] == 0:
-							x = i
-							y = j
-							flag = 1
-							break
-					if flag == 1:
+		global ISEMPTY
+		if ISEMPTY:
+			flag = 1
+			for i in range(pp.width):
+				for j in range(pp.height):
+					if board[i][j] != 0:
+						flag = 0
 						break
-			else:
-				x = move[0]
-				y = move[1]
+				if not flag:
+					break
+			ISEMPTY = 0
+			if flag:
+				x, y = [pp.width // 2, pp.height // 2]
+				break
+		x, y = abpruning_move(board)
 		i += 1
 		if pp.terminateAI:
 			return
