@@ -1,7 +1,7 @@
 from pisqpipe import DEBUG_EVAL, DEBUG
 from util import *
 
-pp.infotext = 'name="pbrain-pyrandom", author="Jan Stransky", version="1.0", country="Czech Republic", www="https://github.com/stranskyjan/pbrain-pyrandom"'
+pp.infotext = 'name="pbrain-19307110202", author="Boyuan Yao & Leiru Long", version="1.0", country="Czech Republic", www="https://github.com/stranskyjan/pbrain-pyrandom"'
 
 MAX_BOARD = 100
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]

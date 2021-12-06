@@ -1,14 +1,17 @@
 import random
 import pisqpipe as pp
 from collections import defaultdict as ddict
+import win32api
 
-MAXCHECK = 8   # The depth for checkkill
-DIST = 1    # New moves distances
-BRANCH = 32  # MAX Branch
-CHECK_BRANCH = 16 # checkkill branch
-branch_abpruning = [32, 16, 8, 4, 4, 4, 4] # abpruning branch
-MAXDEPTH = 6    # Max depth for abpruning
+MAXCHECK = 8  # The depth for checkkill
+DIST = 2    # New moves distances
+BRANCH = 8  # MAX Branch
+CHECK_BRANCH = 8 # checkkill branch
+branch_abpruning = [8, 8, 8, 4, 4, 4, 4, 4, 4] # abpruning branch
+MAXDEPTH = 8    # Max depth for abpruning
 RATIO = 0.1     # Evaluation rate
+starttime = 0
+WARNING = False
 # Score map for each pattern
 score_map = {'ONE': 10,
              'TWO': 100,
@@ -510,7 +513,7 @@ class score_graph:
         return nei[:branch]
 
     def seek_must(self):
-        # Check must point
+        # Check must point (attack first)
         # If we have win point, simply make that move
         # else if opponent has win point, we should take it
         # else if we have point for live four, we make that move
@@ -518,6 +521,8 @@ class score_graph:
         moves1 = []
         moves2 = []
         moves3 = []
+        # moves4 = []
+        # moves5 = []
         for x in range(pp.width):
             for y in range(pp.height):
                 if self.isFree(x, y):
@@ -525,17 +530,30 @@ class score_graph:
                         return [x, y]
                     elif self.score2[(x, y)] >= score_map["FIVE"]:
                         moves1.append([x, y])
+                        continue
                     elif self.score1[(x, y)] >= score_map["FOUR"]:
                         moves2.append([x, y])
+                        continue
                     elif self.score2[(x, y)] >= score_map["FOUR"]:
                         moves3.append([x, y])
+                        continue
+                    # elif self.score1[(x, y)] >= 2 * score_map["THREE"]:
+                    #     moves4.append([x, y])
+                    #     continue
+                    # elif self.score2[(x, y)] >= 2 * score_map["THREE"]:
+                    #     moves5.append([x, y])
+                    #     continue
         # Choose the move with biggest score1
         if moves1:
-            return max(moves1, key=lambda n: self.score1[(n[0], n[1])])
+            return max(moves1, key=lambda n: self.score2[(n[0], n[1])])
         elif moves2:
             return max(moves2, key=lambda n: self.score1[(n[0], n[1])])
         elif moves3:
-            return max(moves3, key=lambda n: self.score1[(n[0], n[1])])
+            return max(moves3, key=lambda n: self.score2[(n[0], n[1])])
+        # elif moves4:
+        #     return max(moves4, key=lambda n: self.score1[(n[0], n[1])])
+        # elif moves5:
+        #     return max(moves5, key=lambda n: self.score2[(n[0], n[1])])
         return False
 
     def get_winner(self):
@@ -555,6 +573,9 @@ class score_graph:
         # Attack first using point larger than double live three
         # If such a point cannot be used to attack, we think about defensive move,
         # which take moves that could stop opponent from making at least BLOCKED_FOUR
+        # f.close()
+        if win32api.GetTickCount() - starttime >= 10000:
+            return "TIMEOUT"
         if depth > maxdepth:
             return False
         if depth > 0:
@@ -570,7 +591,12 @@ class score_graph:
             x, y = move
             score = self.score1[(x, y)]
             score_opp = self.score2[(x, y)]
-            if score >= 2 * score_map["THREE"]:
+            if score >= score_map["FIVE"]:
+                if depth == 0:
+                    return [x, y]
+                else:
+                    return True
+            elif score_opp >= score_map["FIVE"]:
                 self.board[x][y] = 1
                 self.update_point_score(x, y, 1)
                 self.activemoves = self.get_move()
@@ -578,12 +604,18 @@ class score_graph:
                 self.board[x][y] = 0
                 self.update_point_score(x, y, 0)
                 self.activemoves = self.get_move()
+                if action == "TIMEOUT":
+                    if depth == 0:
+                        return False
+                    else:
+                        return "TIMEOUT"
                 if action:
                     if depth == 0:
                         return [x, y]
                     else:
                         return True
-            if score_opp >= score_map["BLOCKED_FOUR"]:
+                continue
+            elif score >= 2 * score_map["THREE"]:
                 self.board[x][y] = 1
                 self.update_point_score(x, y, 1)
                 self.activemoves = self.get_move()
@@ -591,16 +623,41 @@ class score_graph:
                 self.board[x][y] = 0
                 self.update_point_score(x, y, 0)
                 self.activemoves = self.get_move()
+                if action == "TIMEOUT":
+                    if depth == 0:
+                        return False
+                    else:
+                        return "TIMEOUT"
                 if action:
                     if depth == 0:
                         return [x, y]
                     else:
                         return True
+                continue
+            elif score_opp >= score_map["BLOCKED_FOUR"]:
+                self.board[x][y] = 1
+                self.update_point_score(x, y, 1)
+                self.activemoves = self.get_move()
+                action = self.checkkill_MIN(depth + 1)
+                self.board[x][y] = 0
+                self.update_point_score(x, y, 0)
+                self.activemoves = self.get_move()
+                if action == "TIMEOUT":
+                    if depth == 0:
+                        return False
+                    else:
+                        return "TIMEOUT"
+                if action:
+                    if depth == 0:
+                        return [x, y]
+                    else:
+                        return True
+                continue
         return False
 
     def checkkill_MIN(self, depth, maxdepth=MAXCHECK):
-        # Check kill for opponent
-        # The actions of opponent just the same as we do in checkkill_MAX
+        if win32api.GetTickCount() - starttime >= 10000:
+            return "TIMEOUT"
         if depth > maxdepth:
             return False
         if depth > 1:
@@ -612,12 +669,15 @@ class score_graph:
                     return False
 
         moves = self.activemoves[:CHECK_BRANCH]
-        action = []
+        flag = 0
         for move in moves:
             x, y = move
             score = self.score2[(x, y)]
             score_opp = self.score1[(x, y)]
-            if score >= 2 * score_map["THREE"]:
+            if score >= score_map["FIVE"]:
+                return False
+            if score_opp >= score_map["FIVE"]:
+                flag = 1
                 self.board[x][y] = 2
                 self.update_point_score(x, y, 2)
                 self.activemoves = self.get_move()
@@ -625,9 +685,13 @@ class score_graph:
                 self.board[x][y] = 0
                 self.update_point_score(x, y, 0)
                 self.activemoves = self.get_move()
-                if action:
-                    return True
-            if score_opp >= score_map["BLOCKED_FOUR"]:
+                if action == "TIMEOUT":
+                    return "TIMEOUT"
+                if not action:
+                    return False
+                continue
+            elif score >= 2 * score_map["THREE"]:
+                flag = 1
                 self.board[x][y] = 2
                 self.update_point_score(x, y, 2)
                 self.activemoves = self.get_move()
@@ -635,9 +699,29 @@ class score_graph:
                 self.board[x][y] = 0
                 self.update_point_score(x, y, 0)
                 self.activemoves = self.get_move()
-                if action:
-                    return True
-        return False
+                if action == "TIMEOUT":
+                    return "TIMEOUT"
+                if not action:
+                    return False
+                continue
+            elif score_opp >= score_map["BLOCKED_FOUR"]:
+                flag = 1
+                self.board[x][y] = 2
+                self.update_point_score(x, y, 2)
+                self.activemoves = self.get_move()
+                action = self.checkkill_MAX(depth + 1)
+                self.board[x][y] = 0
+                self.update_point_score(x, y, 0)
+                self.activemoves = self.get_move()
+                if action == "TIMEOUT":
+                    return "TIMEOUT"
+                if not action:
+                    return False
+                continue
+        if flag:
+            return True
+        else:
+            return False
 
     def evaluate(self, player):
         # Evaluate the board score by adding the occupied points score for player 1 and player 2
@@ -657,12 +741,15 @@ class score_graph:
 
     def get_value(self, node, alpha, beta):
         # MINMAX search
+        global WARNING
+        if not WARNING and win32api.GetTickCount() - starttime >= 13500:
+            WARNING = True
         if node.move:
             x, y = node.move
             self.board[x][y] = 1 if node.player == 2 else 1
             self.update_point_score(x, y, self.board[x][y])
             self.activemoves = self.get_move()
-        if node.isLeaf():
+        if node.isLeaf() or WARNING:
             value, best_move = self.evaluate(node.player), None
         else:
             if node.player == 1:
@@ -720,24 +807,18 @@ class score_graph:
 
 
 def abpruning_move(board):
+    global starttime
+    global WARNING
+    starttime = win32api.GetTickCount()
     G = score_graph(board)
     move = G.seek_must()
     if move:
-        # f = open(file="D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/test.txt", mode="a")
-        # print("Use seek_must!", file=f)
-        # f.close()
         return move
-    move = G.checkkill_MAX()
-    if move:
-        # f = open(file="D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/test.txt",
-        #          mode="a")
-        # print("Use checkkill!", file=f)
-        # f.close()
-        return move
-    # f = open(file="D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/test.txt", mode="a")
-    # print("Use abpurning!", file=f)
-    # f.close()
+    # move = G.checkkill_MAX()
+    # if move:
+    #     return move
     root = Node()
     _, move = G.get_value(node=root, alpha=float('-inf'), beta=float('+inf'))
+    WARNING = False
     return move
 
