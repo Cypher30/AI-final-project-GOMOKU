@@ -1,11 +1,13 @@
 from pisqpipe import DEBUG_EVAL, DEBUG
 from util import *
+import random
 
 pp.infotext = 'name="pbrain-19307110202", author="Boyuan Yao & Leiru Long", version="1.0", country="Czech Republic", www="https://github.com/stranskyjan/pbrain-pyrandom"'
 
 MAX_BOARD = 100
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
 ISEMPTY = 1
+zcode = Zobrist()
 
 def brain_init():
 	if pp.width < 5 or pp.height < 5:
@@ -30,12 +32,16 @@ def isFree(x, y):
 def brain_my(x, y):
 	if isFree(x,y):
 		board[x][y] = 1
+		global zcode
+		zcode.do(x, y, 1)
 	else:
 		pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 def brain_opponents(x, y):
+	global zcode
 	if isFree(x,y):
 		board[x][y] = 2
+		zcode.do(x, y, 2)
 	else:
 		pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
 
@@ -47,6 +53,8 @@ def brain_block(x, y):
 
 def brain_takeback(x, y):
 	if x >= 0 and y >= 0 and x < pp.width and y < pp.height and board[x][y] != 0:
+		global zcode
+		zcode.withdraw(x, y, board[x][y])
 		board[x][y] = 0
 		return 0
 	return 2
@@ -71,7 +79,7 @@ def brain_turn():
 			if flag:
 				x, y = [pp.width // 2, pp.height // 2]
 				break
-		x, y = abpruning_move(board)
+		x, y = abpruning_move(board, zcode.code)
 		i += 1
 		if pp.terminateAI:
 			return
@@ -79,7 +87,13 @@ def brain_turn():
 			break
 	if i > 1:
 		pp.pipeOut("DEBUG {} coordinates didn't hit an empty field".format(i))
+	f = open("D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/test.txt", 'a')
+	print("Mymove finished!", file=f)
+	f.close()
 	pp.do_mymove(x, y)
+	# f = open("D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/test.txt", 'a')
+	# print(zcode.code, file=f)
+	# f.close()
 
 def brain_end():
 	pass
@@ -104,24 +118,24 @@ if DEBUG_EVAL:
 ######################################################################
 
 # define a file for logging ...
-# DEBUG_LOGFILE = "D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/pbrain-abpruning.log"
+DEBUG_LOGFILE = "D:/John Yao/University/Homework/term5/人工智能/projects/final_project/src/abpruning/pbrain-abpruning.log"
 # ...and clear it initially
-# with open(DEBUG_LOGFILE,"w") as f:
-# 	pass
+with open(DEBUG_LOGFILE,"w") as f:
+	pass
 
 # define a function for writing messages to the file
-# def logDebug(msg):
-# 	with open(DEBUG_LOGFILE,"a") as f:
-# 		f.write(msg+"\n")
-# 		f.flush()
+def logDebug(msg):
+	with open(DEBUG_LOGFILE,"a") as f:
+		f.write(msg+"\n")
+		f.flush()
 
 # define a function to get exception traceback
-# def logTraceBack():
-# 	import traceback
-# 	with open(DEBUG_LOGFILE,"a") as f:
-# 		traceback.print_exc(file=f)
-# 		f.flush()
-# 	raise
+def logTraceBack():
+	import traceback
+	with open(DEBUG_LOGFILE,"a") as f:
+		traceback.print_exc(file=f)
+		f.flush()
+	raise
 
 # use logDebug wherever
 # use try-except (with logTraceBack in except branch) to get exception info

@@ -366,3 +366,27 @@ Final Elo ratings of your agent: 1090.0
 
 
 
+### Attempt 9 2021/12/7
+
+#### BUILD
+
+```python
+MAXCHECK = 8  # The depth for checkkill
+DIST = 2    # New moves distances
+BRANCH = 8  # MAX Branch
+CHECK_BRANCH = 8 # checkkill branch
+branch_abpruning = [8, 8, 8, 8, 4, 4, 4, 4, 4] # abpruning branch
+MAXDEPTH = 8    # Max depth for abpruning
+RATIO = 0.1     # Evaluation rate
+```
+
+Turn off check_kill
+
+Turn off full seek_must
+
+new version of update rule
+
+win32api threshold: 13.5s
+
+#### FTP Result
+

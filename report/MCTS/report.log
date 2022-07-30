@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021/W32TeX) (preloaded format=xelatex 2021.10.16)  27 NOV 2021 20:51
+This is XeTeX, Version 3.141592653-2.6-0.999993 (TeX Live 2021/W32TeX) (preloaded format=xelatex 2021.10.16)  19 DEC 2021 16:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1596,15 +1596,18 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 482.
 
 [5] [6] (./report.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
 Package logreq Info: Writing requests to 'report.run.xml'.
 \openout1 = `report.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 35881 strings out of 476919
- 684646 string characters out of 5825423
+ 35885 strings out of 476919
+ 684670 string characters out of 5825423
  1557156 words of memory out of 5000000
- 55209 multiletter control sequences out of 15000+600000
+ 55213 multiletter control sequences out of 15000+600000
  413416 words of font info for 92 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  102i,17n,102p,1424b,3768s stack positions out of 5000i,500n,10000p,200000b,80000s

@@ -1,0 +1,15 @@
+setStopthink at val
+2
+True
+set stop think at rootCount
+2
+True
+set stop think at rootCount
+2
+True
+set stop think at rootCount
+2
+True
+set stop think at rootCount
+2
+True
